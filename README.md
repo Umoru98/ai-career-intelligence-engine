@@ -1,4 +1,11 @@
-# AI Resume Analyzer
+# AI Career Intelligence Engine
+
+[![CI](https://github.com/Umoru98/ai-career-intelligence-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Umoru98/ai-career-intelligence-engine/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/Umoru98/ai-career-intelligence-engine)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.11%2B-informational)
+![FastAPI](https://img.shields.io/badge/FastAPI-API--First-informational)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-DB-informational)
+![Docker](https://img.shields.io/badge/Docker-Compose-informational)
 
 An intelligent tool to analyze, score, and rank resumes against job descriptions using FastAPI, NLP, and PGVector.
 
