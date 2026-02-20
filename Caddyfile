@@ -1,0 +1,11 @@
+{
+    email {$EMAIL}
+}
+
+resume.{$DOMAIN} {
+    reverse_proxy frontend:80
+}
+
+api.resume.{$DOMAIN} {
+    reverse_proxy api:8000
+}
