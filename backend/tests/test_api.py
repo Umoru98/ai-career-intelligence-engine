@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import io
 import pytest
-import pytest_asyncio
 
 
 @pytest.mark.asyncio
@@ -96,7 +94,10 @@ class TestJobEndpoints:
         """Get a created job by ID."""
         create_resp = await client.post(
             "/v1/jobs",
-            json={"title": "Test Job", "description": "A test job description with enough content."},
+            json={
+                "title": "Test Job",
+                "description": "A test job description with enough content.",
+            },
         )
         job_id = create_resp.json()["id"]
 

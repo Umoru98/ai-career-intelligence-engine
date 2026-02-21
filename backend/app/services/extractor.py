@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import io
 import re
-from pathlib import Path
-from typing import Optional
 
 
 def extract_text_from_pdf(file_path: str) -> str:
@@ -29,9 +26,7 @@ def extract_text_from_pdf(file_path: str) -> str:
                 if page_text:
                     text_parts.append(page_text)
         except Exception as pypdf_err:
-            raise RuntimeError(
-                f"PDF extraction failed. pdfplumber: {pdf_err}; pypdf: {pypdf_err}"
-            )
+            raise RuntimeError(f"PDF extraction failed. pdfplumber: {pdf_err}; pypdf: {pypdf_err}")
 
     raw = "\n".join(text_parts)
     if not raw.strip():

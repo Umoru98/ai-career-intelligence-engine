@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -11,7 +11,7 @@ from app.core.database import Base
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Resume(Base):
@@ -32,13 +32,15 @@ class Resume(Base):
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
-    embeddings: Mapped[list["Embedding"]] = relationship(
-        "Embedding", back_populates="resume", cascade="all, delete-orphan",
+    embeddings: Mapped[list[Embedding]] = relationship(
+        "Embedding",
+        back_populates="resume",
+        cascade="all, delete-orphan",
         primaryjoin="and_(Embedding.owner_id == Resume.id, Embedding.owner_type == 'resume')",
         foreign_keys="[Embedding.owner_id]",
         overlaps="job_embeddings",
     )
-    analyses: Mapped[list["Analysis"]] = relationship(
+    analyses: Mapped[list[Analysis]] = relationship(
         "Analysis", back_populates="resume", cascade="all, delete-orphan"
     )
 
@@ -53,7 +55,7 @@ class Job(Base):
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
-    analyses: Mapped[list["Analysis"]] = relationship(
+    analyses: Mapped[list[Analysis]] = relationship(
         "Analysis", back_populates="job", cascade="all, delete-orphan"
     )
 
@@ -64,14 +66,14 @@ class Embedding(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     owner_type: Mapped[str] = mapped_column(String(16), nullable=False)  # 'resume' | 'job'
     owner_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    embedding_json: Mapped[list | None] = mapped_column(JSONB, nullable=True)  # float[] stored as JSON
+    embedding_json: Mapped[list | None] = mapped_column(
+        JSONB, nullable=True
+    )  # float[] stored as JSON
     model_name: Mapped[str] = mapped_column(String(256), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Polymorphic relationships via owner_type
-    resume: Mapped["Resume | None"] = relationship(
+    resume: Mapped[Resume | None] = relationship(
         "Resume",
         back_populates="embeddings",
         primaryjoin="and_(Embedding.owner_id == Resume.id, Embedding.owner_type == 'resume')",
@@ -100,5 +102,5 @@ class Analysis(Base):
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
-    resume: Mapped["Resume"] = relationship("Resume", back_populates="analyses")
-    job: Mapped["Job"] = relationship("Job", back_populates="analyses")
+    resume: Mapped[Resume] = relationship("Resume", back_populates="analyses")
+    job: Mapped[Job] = relationship("Job", back_populates="analyses")

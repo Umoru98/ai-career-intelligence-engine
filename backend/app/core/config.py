@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
 from functools import lru_cache
-from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -37,7 +35,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
     @property
-    def cors_origins_list(self) -> List[str]:
+    def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
@@ -45,6 +43,6 @@ class Settings(BaseSettings):
         return self.max_file_size_mb * 1024 * 1024
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     return Settings()

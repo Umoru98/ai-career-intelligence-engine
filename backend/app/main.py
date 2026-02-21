@@ -16,8 +16,9 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """Initialize database tables on startup (for dev convenience)."""
     if settings.debug:
-        from app.core.database import engine, Base
+        from app.core.database import Base, engine
         from app.models import models  # noqa: F401 - ensure models are registered
+
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
     yield
@@ -70,6 +71,7 @@ app.include_router(v1_router)
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
     from sqlalchemy import text
+
     from app.core.database import AsyncSessionLocal
 
     db_status = "ok"
@@ -84,6 +86,3 @@ async def health_check() -> HealthResponse:
         version=settings.app_version,
         db=db_status,
     )
-
-
-

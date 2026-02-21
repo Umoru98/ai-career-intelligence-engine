@@ -1,15 +1,23 @@
 from __future__ import annotations
 
 import uuid
-from typing import List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.models.models import Analysis, Embedding, Job, Resume
+from app.models.models import Job, Resume
 from app.schemas.schemas import (
     AnalysisRequest,
     AnalysisResponse,
@@ -36,6 +44,7 @@ router = APIRouter(prefix="/v1", tags=["v1"])
 
 
 # ── Resumes ────────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "/resumes/upload",
@@ -67,17 +76,18 @@ async def upload_resume(
 
     # Save to disk
     import io
+
     file_obj = io.BytesIO(file_bytes)
     stored_path, sha256, size_bytes = await save_upload_file(
         file_obj, file.filename or "resume", content_type
     )
 
     # Extract text
-    extraction_error: Optional[str] = None
-    raw_text: Optional[str] = None
-    cleaned: Optional[str] = None
-    redacted: Optional[str] = None
-    sections: Optional[dict] = None
+    extraction_error: str | None = None
+    raw_text: str | None = None
+    cleaned: str | None = None
+    redacted: str | None = None
+    sections: dict | None = None
 
     try:
         raw_text = extract_text(stored_path, content_type)
@@ -159,6 +169,7 @@ async def get_resume(
 
 # ── Jobs ───────────────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/jobs",
     response_model=JobResponse,
@@ -194,6 +205,7 @@ async def get_job(
 
 
 # ── Analysis ───────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "/analyze",
@@ -253,7 +265,7 @@ async def rank(
         raise HTTPException(status_code=500, detail=f"Ranking failed: {e}")
 
     # Load resume filenames
-    ranked_items: List[RankItem] = []
+    ranked_items: list[RankItem] = []
     for analysis in analyses:
         resume = await db.get(Resume, analysis.resume_id)
         ranked_items.append(

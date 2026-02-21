@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import yaml
 
 # ── Section Detection ──────────────────────────────────────────────────────────
 
-SECTION_PATTERNS: Dict[str, re.Pattern] = {
+SECTION_PATTERNS: dict[str, re.Pattern] = {
     "contact": re.compile(
         r"^(?:contact|personal\s+information|contact\s+information|contact\s+details)\s*$",
         re.IGNORECASE | re.MULTILINE,
@@ -60,7 +59,7 @@ SECTION_PATTERNS: Dict[str, re.Pattern] = {
 }
 
 
-def detect_sections(text: str) -> Dict[str, str]:
+def detect_sections(text: str) -> dict[str, str]:
     """
     Split resume text into named sections using heading regex rules.
     Falls back to 'unknown' for unmatched content.
@@ -68,7 +67,7 @@ def detect_sections(text: str) -> Dict[str, str]:
     Returns: {section_name: text_content}
     """
     lines = text.split("\n")
-    sections: Dict[str, List[str]] = {}
+    sections: dict[str, list[str]] = {}
     current_section = "header"
     sections[current_section] = []
 
@@ -89,7 +88,7 @@ def detect_sections(text: str) -> Dict[str, str]:
             sections[current_section].append(line)
 
     # Convert lists to strings, filter empty sections
-    result: Dict[str, str] = {}
+    result: dict[str, str] = {}
     for name, lines_list in sections.items():
         content = "\n".join(lines_list).strip()
         if content:
@@ -100,10 +99,10 @@ def detect_sections(text: str) -> Dict[str, str]:
 
 # ── Skills Extraction ──────────────────────────────────────────────────────────
 
-_skills_cache: Optional[List[str]] = None
+_skills_cache: list[str] | None = None
 
 
-def load_skills_taxonomy() -> List[str]:
+def load_skills_taxonomy() -> list[str]:
     """Load skills from skills.yml, cached after first load."""
     global _skills_cache
     if _skills_cache is not None:
@@ -111,9 +110,9 @@ def load_skills_taxonomy() -> List[str]:
 
     skills_path = Path(__file__).parent.parent / "data" / "skills.yml"
     if skills_path.exists():
-        with open(skills_path, "r", encoding="utf-8") as f:
+        with open(skills_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
-            all_skills: List[str] = []
+            all_skills: list[str] = []
             if isinstance(data, dict):
                 for category_skills in data.values():
                     if isinstance(category_skills, list):
@@ -127,7 +126,7 @@ def load_skills_taxonomy() -> List[str]:
     return _skills_cache
 
 
-def extract_skills_from_text(text: str, skills_taxonomy: Optional[List[str]] = None) -> List[str]:
+def extract_skills_from_text(text: str, skills_taxonomy: list[str] | None = None) -> list[str]:
     """
     Extract skills from text using dictionary/phrase matching.
     Case-insensitive, word-boundary aware.
@@ -137,7 +136,7 @@ def extract_skills_from_text(text: str, skills_taxonomy: Optional[List[str]] = N
         skills_taxonomy = load_skills_taxonomy()
 
     text_lower = text.lower()
-    found: List[str] = []
+    found: list[str] = []
 
     for skill in skills_taxonomy:
         # Word-boundary aware matching
@@ -149,8 +148,8 @@ def extract_skills_from_text(text: str, skills_taxonomy: Optional[List[str]] = N
 
 
 def compute_skill_overlap(
-    resume_skills: List[str], jd_skills: List[str]
-) -> tuple[List[str], List[str]]:
+    resume_skills: list[str], jd_skills: list[str]
+) -> tuple[list[str], list[str]]:
     """
     Returns (matching_skills, missing_skills).
     matching = intersection(resume, jd)

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from typing import List, Optional
 
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import Analysis, Embedding, Job, Resume
-from app.services.embedder import compute_match_score, generate_embedding
+from app.services.embedder import compute_match_score
 from app.services.explainer import build_explanation, build_suggestions
 from app.services.nlp_pipeline import (
     compute_skill_overlap,
@@ -53,12 +52,11 @@ async def run_analysis(
     job_vec = job_emb_row.embedding_json if job_emb_row else None
 
     # Compute match score (generates embeddings if not cached)
-    score, resume_vec, job_vec = compute_match_score(
-        resume_text, jd_text, resume_vec, job_vec
-    )
+    score, resume_vec, job_vec = compute_match_score(resume_text, jd_text, resume_vec, job_vec)
 
     # Persist embeddings if not already stored
     from app.core.config import get_settings
+
     settings = get_settings()
 
     if not resume_emb_row:
@@ -118,8 +116,8 @@ async def run_analysis(
 async def rank_resumes(
     db: AsyncSession,
     job: Job,
-    resume_ids: Optional[List[uuid.UUID]] = None,
-) -> List[Analysis]:
+    resume_ids: list[uuid.UUID] | None = None,
+) -> list[Analysis]:
     """
     Rank all (or selected) resumes against a job description.
     Returns analyses sorted by match_score_percent descending.
@@ -132,7 +130,7 @@ async def rank_resumes(
     result = await db.execute(stmt)
     resumes = result.scalars().all()
 
-    analyses: List[Analysis] = []
+    analyses: list[Analysis] = []
     for resume in resumes:
         # Check if analysis already exists
         existing = await db.scalar(

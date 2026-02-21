@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import math
-from typing import List, Optional
-
 import numpy as np
 
 from app.core.config import get_settings
@@ -17,6 +14,7 @@ def _get_model():
     global _model
     if _model is None:
         from sentence_transformers import SentenceTransformer
+
         _model = SentenceTransformer(settings.sentence_transformer_model)
     return _model
 
@@ -32,7 +30,7 @@ def _truncate_text(text: str, max_chars: int = 8000) -> str:
     return text
 
 
-def generate_embedding(text: str) -> List[float]:
+def generate_embedding(text: str) -> list[float]:
     """
     Generate a sentence embedding for the given text.
     Returns a list of floats (the embedding vector).
@@ -43,7 +41,7 @@ def generate_embedding(text: str) -> List[float]:
     return embedding.tolist()
 
 
-def cosine_similarity(vec_a: List[float], vec_b: List[float]) -> float:
+def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     """
     Compute cosine similarity between two vectors.
     Since we use normalize_embeddings=True, this is just a dot product.
@@ -81,9 +79,9 @@ def similarity_to_score(cos_sim: float) -> float:
 def compute_match_score(
     resume_text: str,
     jd_text: str,
-    resume_embedding: Optional[List[float]] = None,
-    jd_embedding: Optional[List[float]] = None,
-) -> tuple[float, List[float], List[float]]:
+    resume_embedding: list[float] | None = None,
+    jd_embedding: list[float] | None = None,
+) -> tuple[float, list[float], list[float]]:
     """
     Compute match score between resume and JD.
     Returns (score_percent, resume_embedding, jd_embedding).

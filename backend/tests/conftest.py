@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
+
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 # Use in-memory SQLite for tests (via sync engine override)
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
@@ -21,8 +22,8 @@ def anyio_backend():
 @pytest_asyncio.fixture(scope="function")
 async def client():
     """Create a test client with an in-memory database."""
+    from app.core.database import Base, engine
     from app.main import app
-    from app.core.database import engine, Base
     from app.models import models  # noqa: F401
 
     async with engine.begin() as conn:

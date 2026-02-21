@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
-
 
 def build_explanation(
-    matching_skills: List[str],
-    missing_skills: List[str],
+    matching_skills: list[str],
+    missing_skills: list[str],
     match_score: float,
-    sections: Dict[str, str],
+    sections: dict[str, str],
     jd_text: str,
 ) -> str:
     """
@@ -15,15 +13,21 @@ def build_explanation(
     Template-based, grounded in extracted skills and sections.
     No LLM required.
     """
-    lines: List[str] = []
+    lines: list[str] = []
 
     # Score summary
     if match_score >= 75:
-        lines.append(f"Strong match ({match_score:.1f}%): The resume aligns well with the job description.")
+        lines.append(
+            f"Strong match ({match_score:.1f}%): The resume aligns well with the job description."
+        )
     elif match_score >= 50:
-        lines.append(f"Moderate match ({match_score:.1f}%): The resume partially aligns with the job description.")
+        lines.append(
+            f"Moderate match ({match_score:.1f}%): The resume partially aligns with the job description."
+        )
     else:
-        lines.append(f"Weak match ({match_score:.1f}%): The resume has limited alignment with the job description.")
+        lines.append(
+            f"Weak match ({match_score:.1f}%): The resume has limited alignment with the job description."
+        )
 
     # Matching skills evidence
     if matching_skills:
@@ -46,23 +50,21 @@ def build_explanation(
     # Section evidence
     relevant_sections = [s for s in ["experience", "skills", "projects"] if s in sections]
     if relevant_sections:
-        lines.append(
-            f"Relevant sections detected: {', '.join(relevant_sections)}."
-        )
+        lines.append(f"Relevant sections detected: {', '.join(relevant_sections)}.")
 
     return " ".join(lines)
 
 
 def build_suggestions(
-    missing_skills: List[str],
-    sections: Dict[str, str],
+    missing_skills: list[str],
+    sections: dict[str, str],
     match_score: float,
-) -> List[str]:
+) -> list[str]:
     """
     Generate actionable, grounded improvement suggestions.
     Based on missing skills and section analysis.
     """
-    suggestions: List[str] = []
+    suggestions: list[str] = []
 
     if missing_skills:
         top_missing = missing_skills[:5]

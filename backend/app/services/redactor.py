@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 # Lazy-loaded spaCy model
 _nlp = None
@@ -11,7 +10,9 @@ def _get_nlp():
     global _nlp
     if _nlp is None:
         import spacy
+
         from app.core.config import get_settings
+
         settings = get_settings()
         try:
             _nlp = spacy.load(settings.spacy_model)
@@ -23,9 +24,7 @@ def _get_nlp():
 
 # Regex patterns for PII
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
-_PHONE_RE = re.compile(
-    r"(\+?\d[\d\s\-\(\)\.]{7,}\d)"
-)
+_PHONE_RE = re.compile(r"(\+?\d[\d\s\-\(\)\.]{7,}\d)")
 _URL_RE = re.compile(r"https?://\S+|www\.\S+")
 _ADDRESS_RE = re.compile(
     r"\b\d{1,5}\s+[A-Za-z\s]{3,40}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Way|Place|Pl)\b",

@@ -1,5 +1,5 @@
-from logging.config import fileConfig
 import os
+from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
@@ -10,8 +10,7 @@ config = context.config
 
 # Override sqlalchemy.url from environment
 database_sync_url = os.environ.get(
-    "DATABASE_SYNC_URL",
-    "postgresql://resume_user:resume_pass@localhost:5432/resume_db"
+    "DATABASE_SYNC_URL", "postgresql://resume_user:resume_pass@localhost:5432/resume_db"
 )
 config.set_main_option("sqlalchemy.url", database_sync_url)
 
