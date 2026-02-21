@@ -115,20 +115,29 @@ async def run_analysis(
     analysis.section_summary = section_summary
     analysis.explanation = explanation
     analysis.suggestions = suggestions
+    analysis.result_json = {
+        "status": "complete",
+        "score": score,
+        "skills_matched": len(matching_skills),
+        "skills_missing": len(missing_skills),
+    }
 
     return analysis
 
 
 async def process_analysis_task(analysis_id: uuid.UUID) -> None:
     """Background task for analysis."""
+    import logging
     import traceback
 
     from app.core.database import AsyncSessionLocal
 
+    logger = logging.getLogger(__name__)
+
     async with AsyncSessionLocal() as db:
         analysis = await db.get(Analysis, analysis_id)
         if not analysis:
-            print(f"Error: Analysis {analysis_id} not found for background task.")
+            logger.error(f"Analysis {analysis_id} not found for background task.")
             return
 
         try:
@@ -143,14 +152,16 @@ async def process_analysis_task(analysis_id: uuid.UUID) -> None:
 
             await run_analysis(db, resume, job, analysis_id)
             await db.commit()
-            print(f"Analysis {analysis_id} completed successfully.")
+            logger.info(f"Analysis {analysis_id} completed successfully.")
         except Exception as e:
-            print(f"Analysis {analysis_id} failed:")
-            traceback.print_exc()
+            error_trace = traceback.format_exc()
+            logger.error(f"Analysis {analysis_id} failed: {e}\n{error_trace}")
             await db.rollback()
             analysis.status = "failed"
             analysis.error_message = str(e)
+            analysis.result_json = {"error": str(e), "traceback": error_trace}
             await db.commit()
+
 
 
 

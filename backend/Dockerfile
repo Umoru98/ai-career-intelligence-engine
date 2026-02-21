@@ -22,13 +22,18 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 # Copy application code
 COPY . .
 
+# Ensure start.sh is executable
+USER root
+RUN chmod +x /app/start.sh
+USER appuser
+
 # Create upload directory
 RUN mkdir -p /data/uploads
 
-# Non-root user for security
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app /data
-USER appuser
+# Non-root user for security (managed in previous step)
+# USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+CMD ["/bin/bash", "start.sh"]
+

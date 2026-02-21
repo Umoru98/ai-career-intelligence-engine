@@ -14,13 +14,21 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database tables on startup (for dev convenience)."""
+    import os
+    from pathlib import Path
+
+    # Ensure upload directory exists
+    upload_path = Path(settings.upload_dir)
+    upload_path.mkdir(parents=True, exist_ok=True)
+    print(f"Ensuring upload directory exists at: {upload_path}")
+
     if settings.debug:
         from app.core.database import Base, engine
         from app.models import models  # noqa: F401 - ensure models are registered
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
     yield
 
 

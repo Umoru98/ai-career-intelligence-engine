@@ -100,10 +100,15 @@ class Analysis(Base):
     section_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     suggestions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    result_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), index=True
+    )
+
 
     resume: Mapped[Resume] = relationship("Resume", back_populates="analyses")
     job: Mapped[Job] = relationship("Job", back_populates="analyses")

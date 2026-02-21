@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.models.models import Job, Resume
+from app.models.models import Analysis, Job, Resume
 from app.schemas.schemas import (
     AnalysisRequest,
     AnalysisResponse,
