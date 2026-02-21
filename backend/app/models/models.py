@@ -92,12 +92,15 @@ class Analysis(Base):
     job_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    match_score_percent: Mapped[float] = mapped_column(nullable=False)
-    matching_skills: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
-    missing_skills: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
-    section_summary: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    explanation: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    suggestions: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")  # queued | running | done | failed
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    match_score_percent: Mapped[float | None] = mapped_column(nullable=True)
+    matching_skills: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    missing_skills: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    section_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    suggestions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )

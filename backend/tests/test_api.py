@@ -130,6 +130,12 @@ class TestAnalysisEndpoints:
         )
         assert response.status_code == 404
 
+    async def test_get_analysis_not_found(self, client):
+        """Get non-existent analysis returns 404."""
+        response = await client.get("/v1/analyses/00000000-0000-0000-0000-000000000000")
+        assert response.status_code == 404
+
+
     async def test_rank_not_found_job(self, client):
         """Rank with non-existent job returns 404."""
         response = await client.post(

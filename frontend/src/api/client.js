@@ -50,6 +50,12 @@ export async function analyzeResume(resumeId, jobId) {
     return res.data
 }
 
+export async function getAnalysisStatus(analysisId) {
+    const res = await api.get(`/v1/analyses/${analysisId}`)
+    return res.data
+}
+
+
 export async function rankResumes(jobId, resumeIds = null) {
     const body = resumeIds ? { resume_ids: resumeIds } : {}
     const res = await api.post(`/v1/jobs/${jobId}/rank`, body)

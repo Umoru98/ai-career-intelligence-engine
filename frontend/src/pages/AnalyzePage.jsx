@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { uploadResume, createJob, analyzeResume } from '../api/client'
+import { uploadResume, createJob, analyzeResume, getAnalysisStatus } from '../api/client'
 import ScoreDetail from '../components/ScoreDetail'
 
 export default function AnalyzePage() {
@@ -55,13 +55,44 @@ export default function AnalyzePage() {
             }
 
             const job = await createJob(jdTitle || null, jdText)
-            const analysis = await analyzeResume(uploaded.id, job.id)
-            setResult({ analysis, resume: uploaded, job })
+
+            // Start analysis (returns 202)
+            const initialAnalysis = await analyzeResume(uploaded.id, job.id)
+
+            // Polling
+            let pollCount = 0
+            const maxPolls = 30 // 30 * 2s = 60s
+
+            const poll = setInterval(async () => {
+                try {
+                    const analysis = await getAnalysisStatus(initialAnalysis.id)
+                    pollCount++
+
+                    if (analysis.status === 'done') {
+                        clearInterval(poll)
+                        setResult({ analysis, resume: uploaded, job })
+                        setLoading(false)
+                    } else if (analysis.status === 'failed') {
+                        clearInterval(poll)
+                        setError(`Analysis failed: ${analysis.error_message || 'Unknown error'}`)
+                        setLoading(false)
+                    } else if (pollCount >= maxPolls) {
+                        clearInterval(poll)
+                        setError('Analysis timed out. Please try again.')
+                        setLoading(false)
+                    }
+                } catch (err) {
+                    clearInterval(poll)
+                    setError('Error polling analysis status.')
+                    setLoading(false)
+                }
+            }, 2000)
+
         } catch (err) {
             setError(err.response?.data?.detail || err.message || 'Analysis failed.')
-        } finally {
             setLoading(false)
         }
+
     }
 
     return (

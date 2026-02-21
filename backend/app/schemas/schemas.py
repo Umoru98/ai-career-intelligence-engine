@@ -85,13 +85,16 @@ class AnalysisResponse(BaseModel):
     id: uuid.UUID
     resume_id: uuid.UUID
     job_id: uuid.UUID
-    match_score_percent: float = Field(..., ge=0.0, le=100.0, examples=[72.45])
+    status: str = "queued"
+    error_message: str | None = None
+    match_score_percent: float | None = Field(None, ge=0.0, le=100.0, examples=[72.45])
     matching_skills: list[str] = Field(default_factory=list)
     missing_skills: list[str] = Field(default_factory=list)
     section_summary: dict[str, Any] = Field(default_factory=dict)
-    explanation: str = ""
+    explanation: str | None = ""
     suggestions: list[str] = Field(default_factory=list)
     created_at: datetime
+
 
     model_config = {"from_attributes": True}
 

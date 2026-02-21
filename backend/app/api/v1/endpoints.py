@@ -210,12 +210,13 @@ async def get_job(
 @router.post(
     "/analyze",
     response_model=AnalysisResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Analyze one resume against one job description",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Analyze one resume against one job description (Async)",
     tags=["analysis"],
 )
 async def analyze(
     payload: AnalysisRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> AnalysisResponse:
     resume = await db.get(Resume, payload.resume_id)
@@ -232,15 +233,38 @@ async def analyze(
             detail=f"Resume text extraction failed: {resume.extraction_error}",
         )
 
-    try:
-        analysis = await run_analysis(db, resume, job)
-        await db.commit()
-        await db.refresh(analysis)
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {e}")
+    # Create analysis record in queued status
+    analysis = Analysis(
+        resume_id=resume.id,
+        job_id=job.id,
+        status="queued",
+    )
+    db.add(analysis)
+    await db.commit()
+    await db.refresh(analysis)
+
+    # Trigger background task
+    from app.services.analyzer import process_analysis_task
+    background_tasks.add_task(process_analysis_task, analysis.id)
 
     return AnalysisResponse.model_validate(analysis)
+
+
+@router.get(
+    "/analyses/{analysis_id}",
+    response_model=AnalysisResponse,
+    summary="Get analysis status and result",
+    tags=["analysis"],
+)
+async def get_analysis(
+    analysis_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> AnalysisResponse:
+    analysis = await db.get(Analysis, analysis_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found.")
+    return AnalysisResponse.model_validate(analysis)
+
 
 
 @router.post(

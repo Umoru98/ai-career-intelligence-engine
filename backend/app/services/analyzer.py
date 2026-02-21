@@ -20,15 +20,18 @@ async def run_analysis(
     db: AsyncSession,
     resume: Resume,
     job: Job,
+    analysis_id: uuid.UUID,
 ) -> Analysis:
     """
     Full analysis pipeline for one resume vs one job description.
-    Returns an Analysis ORM object (not yet committed).
+    Updates an existing Analysis ORM object.
     """
     skills_taxonomy = load_skills_taxonomy()
 
     # Use redacted_text for embeddings (bias-aware)
-    resume_text = resume.redacted_text or resume.cleaned_text or resume.raw_extracted_text or ""
+    resume_text = (
+        resume.redacted_text or resume.cleaned_text or resume.raw_extracted_text or ""
+    )
     jd_text = job.description
 
     if not resume_text.strip():
@@ -52,7 +55,9 @@ async def run_analysis(
     job_vec = job_emb_row.embedding_json if job_emb_row else None
 
     # Compute match score (generates embeddings if not cached)
-    score, resume_vec, job_vec = compute_match_score(resume_text, jd_text, resume_vec, job_vec)
+    score, resume_vec, job_vec = compute_match_score(
+        resume_text, jd_text, resume_vec, job_vec
+    )
 
     # Persist embeddings if not already stored
     from app.core.config import get_settings
@@ -93,24 +98,60 @@ async def run_analysis(
     }
 
     # Build explanation and suggestions
-    explanation = build_explanation(matching_skills, missing_skills, score, sections, jd_text)
+    explanation = build_explanation(
+        matching_skills, missing_skills, score, sections, jd_text
+    )
     suggestions = build_suggestions(missing_skills, sections, score)
 
-    # Create or update analysis
-    analysis = Analysis(
-        resume_id=resume.id,
-        job_id=job.id,
-        match_score_percent=score,
-        matching_skills=matching_skills,
-        missing_skills=missing_skills,
-        section_summary=section_summary,
-        explanation=explanation,
-        suggestions=suggestions,
-    )
-    db.add(analysis)
-    await db.flush()  # get the ID without committing
+    # Update dynamic analysis record
+    analysis = await db.get(Analysis, analysis_id)
+    if not analysis:
+        raise ValueError(f"Analysis {analysis_id} not found in DB.")
+
+    analysis.status = "done"
+    analysis.match_score_percent = score
+    analysis.matching_skills = matching_skills
+    analysis.missing_skills = missing_skills
+    analysis.section_summary = section_summary
+    analysis.explanation = explanation
+    analysis.suggestions = suggestions
 
     return analysis
+
+
+async def process_analysis_task(analysis_id: uuid.UUID) -> None:
+    """Background task for analysis."""
+    import traceback
+
+    from app.core.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        analysis = await db.get(Analysis, analysis_id)
+        if not analysis:
+            print(f"Error: Analysis {analysis_id} not found for background task.")
+            return
+
+        try:
+            analysis.status = "running"
+            await db.commit()
+
+            resume = await db.get(Resume, analysis.resume_id)
+            job = await db.get(Job, analysis.job_id)
+
+            if not resume or not job:
+                raise ValueError("Resume or Job missing for analysis.")
+
+            await run_analysis(db, resume, job, analysis_id)
+            await db.commit()
+            print(f"Analysis {analysis_id} completed successfully.")
+        except Exception as e:
+            print(f"Analysis {analysis_id} failed:")
+            traceback.print_exc()
+            await db.rollback()
+            analysis.status = "failed"
+            analysis.error_message = str(e)
+            await db.commit()
+
 
 
 async def rank_resumes(
@@ -143,7 +184,16 @@ async def rank_resumes(
             analyses.append(existing)
         else:
             try:
-                analysis = await run_analysis(db, resume, job)
+                # Create record first
+                analysis = Analysis(
+                    resume_id=resume.id,
+                    job_id=job.id,
+                    status="running",
+                )
+                db.add(analysis)
+                await db.flush()
+
+                await run_analysis(db, resume, job, analysis.id)
                 analyses.append(analysis)
             except Exception as e:
                 # Log and skip resumes that fail
@@ -151,6 +201,7 @@ async def rank_resumes(
                 continue
 
     await db.commit()
+
 
     # Sort by score descending
     analyses.sort(key=lambda a: a.match_score_percent, reverse=True)
