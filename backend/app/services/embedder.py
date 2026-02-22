@@ -30,14 +30,19 @@ def _truncate_text(text: str, max_chars: int = 8000) -> str:
     return text
 
 
-def generate_embedding(text: str) -> list[float]:
+async def generate_embedding(text: str) -> list[float]:
     """
-    Generate a sentence embedding for the given text.
+    Generate a sentence embedding for the given text asynchronously.
+    Offloads the CPU-bound model.encode() call to a thread.
     Returns a list of floats (the embedding vector).
     """
+    import asyncio
+
     model = _get_model()
     truncated = _truncate_text(text)
-    embedding = model.encode(truncated, normalize_embeddings=True)
+    
+    # Run the heavy cpu-bound inference in a thread
+    embedding = await asyncio.to_thread(model.encode, truncated, normalize_embeddings=True)
     return embedding.tolist()
 
 
@@ -76,7 +81,7 @@ def similarity_to_score(cos_sim: float) -> float:
     return round(max(0.0, min(100.0, score)), 2)
 
 
-def compute_match_score(
+async def compute_match_score(
     resume_text: str,
     jd_text: str,
     resume_embedding: list[float] | None = None,
@@ -85,12 +90,12 @@ def compute_match_score(
     """
     Compute match score between resume and JD.
     Returns (score_percent, resume_embedding, jd_embedding).
-    Generates embeddings if not provided.
+    Generates embeddings if not provided asynchronously to avoid blocking.
     """
     if resume_embedding is None:
-        resume_embedding = generate_embedding(resume_text)
+        resume_embedding = await generate_embedding(resume_text)
     if jd_embedding is None:
-        jd_embedding = generate_embedding(jd_text)
+        jd_embedding = await generate_embedding(jd_text)
 
     cos_sim = cosine_similarity(resume_embedding, jd_embedding)
     score = similarity_to_score(cos_sim)

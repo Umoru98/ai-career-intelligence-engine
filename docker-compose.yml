@@ -36,6 +36,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
       DEBUG: ${DEBUG:-false}
     volumes:
+      - ./backend:/app
       - upload_data:/data/uploads
       - model_cache:/root/.cache
     ports:

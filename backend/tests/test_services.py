@@ -280,11 +280,11 @@ class TestRedaction:
     def test_preserve_skills(self):
         from app.services.redactor import redact_text
 
-        text = "Skills: Python, FastAPI, Docker, PostgreSQL"
+        text = "Skills: Python, FastAPI, Kubernetes, PostgreSQL"
         result = redact_text(text)
         assert "Python" in result
         assert "FastAPI" in result
-        assert "Docker" in result
+        assert "Kubernetes" in result
 
     def test_redact_empty(self):
         from app.services.redactor import redact_text

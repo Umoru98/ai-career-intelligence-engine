@@ -54,8 +54,10 @@ async def run_analysis(
     resume_vec = resume_emb_row.embedding_json if resume_emb_row else None
     job_vec = job_emb_row.embedding_json if job_emb_row else None
 
+    import asyncio
+
     # Compute match score (generates embeddings if not cached)
-    score, resume_vec, job_vec = compute_match_score(
+    score, resume_vec, job_vec = await compute_match_score(
         resume_text, jd_text, resume_vec, job_vec
     )
 
@@ -82,13 +84,16 @@ async def run_analysis(
         )
         db.add(emb)
 
-    # Skills extraction
-    resume_skills = extract_skills_from_text(resume_text, skills_taxonomy)
-    jd_skills = extract_skills_from_text(jd_text, skills_taxonomy)
+    # Skills extraction (offload to thread)
+    resume_skills = await asyncio.to_thread(extract_skills_from_text, resume_text, skills_taxonomy)
+    jd_skills = await asyncio.to_thread(extract_skills_from_text, jd_text, skills_taxonomy)
     matching_skills, missing_skills = compute_skill_overlap(resume_skills, jd_skills)
 
-    # Section detection
-    sections = resume.sections_json or detect_sections(resume_text)
+    # Section detection (offload to thread if not cached)
+    if resume.sections_json:
+        sections = resume.sections_json
+    else:
+        sections = await asyncio.to_thread(detect_sections, resume_text)
 
     # Build section summary (first 200 chars of each section)
     section_summary = {
@@ -161,6 +166,18 @@ async def process_analysis_task(analysis_id: uuid.UUID) -> None:
             analysis.error_message = str(e)
             analysis.result_json = {"error": str(e), "traceback": error_trace}
             await db.commit()
+        finally:
+            # Aggressive memory cleanup for Render free tier
+            import gc
+            
+            # Explicitly delete large variables if they exist in the local scope
+            # (Python's garbage collector usually handles this, but we force it)
+            if 'resume' in locals():
+                del resume
+            if 'job' in locals():
+                del job
+            
+            gc.collect()
 
 
 

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { uploadResume, createJob, analyzeResume, getAnalysisStatus } from '../api/client'
 import ScoreDetail from '../components/ScoreDetail'
 
@@ -11,6 +11,26 @@ export default function AnalyzePage() {
     const [result, setResult] = useState(null)
     const [dragOver, setDragOver] = useState(false)
     const fileInputRef = useRef()
+    const resultsRef = useRef(null)
+
+    const loadingMessages = [
+        "Waking up the AI engine...",
+        "Extracting your skills...",
+        "Running semantic matching...",
+        "Almost there, finalizing insights..."
+    ]
+    const [loadingMessageIdx, setLoadingMessageIdx] = useState(0)
+
+    useEffect(() => {
+        let interval;
+        if (loading) {
+            setLoadingMessageIdx(0);
+            interval = setInterval(() => {
+                setLoadingMessageIdx(prev => (prev + 1) % loadingMessages.length);
+            }, 3500);
+        }
+        return () => clearInterval(interval);
+    }, [loading]);
 
     const handleFiles = (newFiles) => {
         const valid = Array.from(newFiles).filter(f =>
@@ -46,6 +66,11 @@ export default function AnalyzePage() {
         setError(null)
         setResult(null)
 
+        // Smooth scroll to results area
+        setTimeout(() => {
+            resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 100)
+
         try {
             const uploaded = await uploadResume(files[0])
             if (uploaded.extraction_status === 'error') {
@@ -59,35 +84,49 @@ export default function AnalyzePage() {
             // Start analysis (returns 202)
             const initialAnalysis = await analyzeResume(uploaded.id, job.id)
 
-            // Polling
+            // Polling with exponential backoff
             let pollCount = 0
-            const maxPolls = 60 // 60 * 2s = 120s
+            const maxPolls = 60
+            let currentDelay = 2000
 
-
-            const poll = setInterval(async () => {
+            const pollStatus = async () => {
                 try {
                     const analysis = await getAnalysisStatus(initialAnalysis.id)
                     pollCount++
 
                     if (analysis.status === 'done') {
-                        clearInterval(poll)
                         setResult({ analysis, resume: uploaded, job })
                         setLoading(false)
+                        return
                     } else if (analysis.status === 'failed') {
-                        clearInterval(poll)
                         setError(`Analysis failed: ${analysis.error_message || 'Unknown error'}`)
                         setLoading(false)
+                        return
                     } else if (pollCount >= maxPolls) {
-                        clearInterval(poll)
-                        setError('Analysis timed out. Please try again.')
+                        setError('Our free-tier servers are taking a little longer than expected to warm up. Please try again in a few moments.')
                         setLoading(false)
+                        return
                     }
+
+                    // Reset delay on successful poll and queue next poll
+                    currentDelay = 2000
+                    setTimeout(pollStatus, currentDelay)
+
                 } catch (err) {
-                    clearInterval(poll)
-                    setError('Error polling analysis status.')
-                    setLoading(false)
+                    pollCount++
+                    if (pollCount >= maxPolls) {
+                        setError('Our free-tier servers are taking a little longer than expected to warm up. Please try again in a few moments.')
+                        setLoading(false)
+                        return
+                    }
+                    // Exponential backoff on error (502, etc.)
+                    currentDelay = Math.min(currentDelay * 2, 8000)
+                    setTimeout(pollStatus, currentDelay)
                 }
-            }, 2000)
+            }
+
+            // Start polling loop
+            setTimeout(pollStatus, currentDelay)
 
         } catch (err) {
             setError(err.response?.data?.detail || err.message || 'Analysis failed.')
@@ -178,12 +217,14 @@ export default function AnalyzePage() {
                     </div>
 
                     {/* Right: Results */}
-                    <div>
+                    <div ref={resultsRef}>
                         {loading && (
-                            <div className="loading-overlay">
+                            <div className="loading-overlay" style={{ minHeight: '300px' }}>
                                 <div className="loading-spinner-lg" />
-                                <p>Waking up the AI engine... this might take up to a minute.</p>
-                                <p className="text-sm text-muted">Generating embeddings and extracting skills</p>
+                                <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '20px' }}>
+                                    {loadingMessages[loadingMessageIdx]}
+                                </p>
+                                <p className="text-sm text-muted">Please wait, this can take a moment on the free-tier server.</p>
                             </div>
                         )}
                         {result && !loading && (

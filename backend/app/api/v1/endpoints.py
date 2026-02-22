@@ -90,9 +90,11 @@ async def upload_resume(
     sections: dict | None = None
 
     try:
+        import asyncio
         raw_text = extract_text(stored_path, content_type)
         cleaned = clean_text(raw_text)
-        redacted = redact_text(cleaned)
+        # Redaction runs SpaCy NER which is heavy CPU, offload to thread
+        redacted = await asyncio.to_thread(redact_text, cleaned)
         sections = detect_sections(redacted)
     except Exception as e:
         extraction_error = str(e)
