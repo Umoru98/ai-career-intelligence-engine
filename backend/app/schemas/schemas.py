@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # ── Resume Schemas ─────────────────────────────────────────────────────────────
 
@@ -88,13 +88,27 @@ class AnalysisResponse(BaseModel):
     status: str = "queued"
     error_message: str | None = None
     match_score_percent: float | None = Field(None, ge=0.0, le=100.0, examples=[72.45])
+
+    # NOTE: When validating from ORM objects, these fields may exist but be None.
+    # default_factory only applies when the field is missing, not when it is None.
+    # These validators normalize None -> [] / {} to avoid Pydantic validation errors.
     matching_skills: list[str] = Field(default_factory=list)
     missing_skills: list[str] = Field(default_factory=list)
     section_summary: dict[str, Any] = Field(default_factory=dict)
     explanation: str | None = ""
     suggestions: list[str] = Field(default_factory=list)
+
     created_at: datetime
 
+    @field_validator("matching_skills", "missing_skills", "suggestions", mode="before")
+    @classmethod
+    def _none_lists_to_empty(cls, v):
+        return [] if v is None else v
+
+    @field_validator("section_summary", mode="before")
+    @classmethod
+    def _none_dict_to_empty(cls, v):
+        return {} if v is None else v
 
     model_config = {"from_attributes": True}
 

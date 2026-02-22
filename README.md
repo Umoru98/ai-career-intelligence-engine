@@ -35,8 +35,8 @@ An intelligent tool to analyze, score, and rank resumes against job descriptions
 
 1.  **Clone the repo**:
     ```bash
-    git clone https://github.com/your-username/AI-resume-analyzer.git
-    cd AI-resume-analyzer
+    git clone https://github.com/Umoru98/ai-career-intelligence-engine
+    cd ai-career-intelligence-engine
     ```
 
 2.  **Setup Environment**:
