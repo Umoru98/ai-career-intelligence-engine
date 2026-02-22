@@ -77,20 +77,9 @@ app.include_router(v1_router)
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])
 async def health_check() -> HealthResponse:
-    """Health check endpoint."""
-    from sqlalchemy import text
-
-    from app.core.database import AsyncSessionLocal
-
-    db_status = "ok"
-    try:
-        async with AsyncSessionLocal() as session:
-            await session.execute(text("SELECT 1"))
-    except Exception as e:
-        db_status = f"error: {e}"
-
+    """Lightweight health check endpoint (no DB hits)."""
     return HealthResponse(
         status="ok",
         version=settings.app_version,
-        db=db_status,
+        db="ignored_for_speed",
     )

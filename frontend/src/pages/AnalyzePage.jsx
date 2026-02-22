@@ -61,7 +61,8 @@ export default function AnalyzePage() {
 
             // Polling
             let pollCount = 0
-            const maxPolls = 30 // 30 * 2s = 60s
+            const maxPolls = 60 // 60 * 2s = 120s
+
 
             const poll = setInterval(async () => {
                 try {
@@ -181,7 +182,7 @@ export default function AnalyzePage() {
                         {loading && (
                             <div className="loading-overlay">
                                 <div className="loading-spinner-lg" />
-                                <p>Running AI analysis...</p>
+                                <p>Waking up the AI engine... this might take up to a minute.</p>
                                 <p className="text-sm text-muted">Generating embeddings and extracting skills</p>
                             </div>
                         )}
