@@ -1,6 +1,6 @@
 """Add result_json and updated_at to analysis
 
-Revision ID: 003_add_result_json_and_timestamps
+Revision ID: 003_result_json_updated_at
 Revises: 002_async_analysis
 Create Date: 2026-02-21
 
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision = "003_add_result_json_and_timestamps"
+revision = "003_result_json_updated_at"
 down_revision = "002_async_analysis"
 branch_labels = None
 depends_on = None
