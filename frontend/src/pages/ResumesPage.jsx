@@ -8,8 +8,21 @@ export default function ResumesPage() {
 
     useEffect(() => {
         listResumes()
-            .then(data => setResumes(data.items))
-            .catch(err => setError(err.message))
+            .then(data => {
+                if (data && data.items) {
+                    setResumes(data.items)
+                } else {
+                    setResumes([])
+                }
+            })
+            .catch(err => {
+                const status = err.response?.status
+                if (status === 404) {
+                    setResumes([])
+                } else {
+                    setError(err.message)
+                }
+            })
             .finally(() => setLoading(false))
     }, [])
 

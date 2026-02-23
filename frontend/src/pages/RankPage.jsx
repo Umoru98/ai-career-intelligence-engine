@@ -15,6 +15,9 @@ export default function RankPage() {
     const [dragOver, setDragOver] = useState(false)
     const fileInputRef = useRef()
 
+    const [status, setStatus] = useState('')
+    const [secondsElapsed, setSecondsElapsed] = useState(0)
+
     const handleFiles = (newFiles) => {
         const valid = Array.from(newFiles).filter(f =>
             f.type === 'application/pdf' ||
@@ -62,6 +65,23 @@ export default function RankPage() {
         setError(null)
         setRankResult(null)
         setSelectedAnalysis(null)
+        setSecondsElapsed(0)
+
+        const loadingMessages = [
+            "Brewing some digital coffee for the AI...",
+            "Reading between the lines of your resume...",
+            "Translating HR-speak into Machine Learning...",
+            "Cross-referencing your skills with industry standards...",
+            "Polishing up the final insights..."
+        ]
+
+        setStatus(loadingMessages[0])
+        let messageIdx = 0
+        const messageInterval = setInterval(() => {
+            messageIdx = (messageIdx + 1) % loadingMessages.length
+            setStatus(loadingMessages[messageIdx])
+            setSecondsElapsed(prev => prev + 3)
+        }, 3000)
 
         try {
             const job = await createJob(jdTitle || null, jdText)
@@ -70,6 +90,7 @@ export default function RankPage() {
         } catch (err) {
             setError(err.response?.data?.detail || err.message || 'Ranking failed.')
         } finally {
+            clearInterval(messageInterval)
             setLoading(false)
         }
     }
@@ -190,10 +211,16 @@ export default function RankPage() {
                     {/* Right: Results */}
                     <div>
                         {loading && (
-                            <div className="loading-overlay">
+                            <div className="loading-overlay" style={{ minHeight: '300px' }}>
                                 <div className="loading-spinner-lg" />
-                                <p>Ranking {uploadedResumes.length} resumes...</p>
-                                <p className="text-sm text-muted">This may take a moment for large batches</p>
+                                <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '20px', textAlign: 'center' }}>
+                                    {status}
+                                </p>
+                                {secondsElapsed >= 30 && (
+                                    <p className="text-sm text-muted" style={{ maxWidth: 400, textAlign: 'center', marginTop: 12 }}>
+                                        Great resumes take a moment to analyze. We're making sure we don't miss any of your skills!
+                                    </p>
+                                )}
                             </div>
                         )}
 

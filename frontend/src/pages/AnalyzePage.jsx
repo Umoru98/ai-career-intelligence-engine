@@ -45,6 +45,8 @@ export default function AnalyzePage() {
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
     }
 
+    const [secondsElapsed, setSecondsElapsed] = useState(0)
+
     const handleAnalyze = async () => {
         if (!files.length) { setError('Please upload a resume.'); return }
         if (!jdText.trim()) { setError('Please enter a job description.'); return }
@@ -53,6 +55,7 @@ export default function AnalyzePage() {
         setLoading(true)
         setError(null)
         setResult(null)
+        setSecondsElapsed(0)
 
         // Smooth scroll to results area
         setTimeout(() => {
@@ -72,59 +75,54 @@ export default function AnalyzePage() {
             // Start analysis (returns 202)
             const initialAnalysis = await analyzeResume(uploaded.id, job.id)
 
-            // Polling with exponential backoff
-            let pollCount = 0
-            const maxPolls = 60
-            let currentDelay = 2000
+            const loadingMessages = [
+                "Brewing some digital coffee for the AI...",
+                "Reading between the lines of your resume...",
+                "Translating HR-speak into Machine Learning...",
+                "Cross-referencing your skills with industry standards...",
+                "Polishing up the final insights..."
+            ]
+
+            setStatus(loadingMessages[0])
+            let messageIdx = 0
+
+            const messageInterval = setInterval(() => {
+                messageIdx = (messageIdx + 1) % loadingMessages.length
+                setStatus(loadingMessages[messageIdx])
+                setSecondsElapsed(prev => prev + 3)
+            }, 3000)
 
             const pollStatus = async () => {
                 try {
                     const analysis = await getAnalysisStatus(initialAnalysis.id)
-                    pollCount++
 
                     if (analysis.status === 'COMPLETED' || analysis.status === 'done') {
+                        clearInterval(messageInterval)
                         setResult({ analysis, resume: uploaded, job })
                         setLoading(false)
                         return
                     } else if (analysis.status === 'failed') {
+                        clearInterval(messageInterval)
                         setError(`Analysis failed: ${analysis.error_message || 'Unknown error'}`)
                         setLoading(false)
                         return
-                    } else {
-                        setStatus(analysis.status)
                     }
 
-                    if (pollCount >= maxPolls) {
-                        setError('Our free-tier servers are taking a little longer than expected to warm up. Please try again in a few moments.')
-                        setLoading(false)
-                        return
-                    }
-
-                    // Reset delay on successful poll and queue next poll
-                    currentDelay = 2000
-                    setTimeout(pollStatus, currentDelay)
+                    setTimeout(pollStatus, 2000)
 
                 } catch (err) {
-                    pollCount++
-                    if (pollCount >= maxPolls) {
-                        setError('Our free-tier servers are taking a little longer than expected to warm up. Please try again in a few moments.')
-                        setLoading(false)
-                        return
-                    }
-                    // Exponential backoff on error (502, etc.)
-                    currentDelay = Math.min(currentDelay * 2, 8000)
-                    setTimeout(pollStatus, currentDelay)
+                    // Exponential backoff or simple retry
+                    setTimeout(pollStatus, 4000)
                 }
             }
 
             // Start polling loop
-            setTimeout(pollStatus, currentDelay)
+            setTimeout(pollStatus, 2000)
 
         } catch (err) {
             setError(err.response?.data?.detail || err.message || 'Analysis failed.')
             setLoading(false)
         }
-
     }
 
     return (
@@ -186,6 +184,10 @@ export default function AnalyzePage() {
                             </div>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                                 <label className="form-label">Job Description *</label>
+                                <input
+                                    className="form-input"
+                                    style={{ display: 'none' }} // spacer
+                                />
                                 <textarea
                                     className="form-textarea"
                                     placeholder="Paste the full job description here..."
@@ -213,10 +215,14 @@ export default function AnalyzePage() {
                         {loading && (
                             <div className="loading-overlay" style={{ minHeight: '300px' }}>
                                 <div className="loading-spinner-lg" />
-                                <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '20px' }}>
-                                    {statusMap[status] || "Processing..."}
+                                <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '20px', textAlign: 'center' }}>
+                                    {status}
                                 </p>
-                                <p className="text-sm text-muted">Please wait, this can take a moment on the free-tier server.</p>
+                                {secondsElapsed >= 30 && (
+                                    <p className="text-sm text-muted" style={{ maxWidth: 400, textAlign: 'center', marginTop: 12 }}>
+                                        Great resumes take a moment to analyze. We're making sure we don't miss any of your skills!
+                                    </p>
+                                )}
                             </div>
                         )}
                         {result && !loading && (
