@@ -7,6 +7,7 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     File,
+    Header,
     HTTPException,
     Query,
     UploadFile,
@@ -43,6 +44,10 @@ settings = get_settings()
 router = APIRouter(prefix="/v1", tags=["v1"])
 
 
+async def get_session_id(x_session_id: str | None = Header(None)) -> str | None:
+    return x_session_id
+
+
 # ── Resumes ────────────────────────────────────────────────────────────────────
 
 
@@ -57,6 +62,7 @@ async def upload_resume(
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
 ) -> ResumeUploadResponse:
     # Validate content type
     content_type = file.content_type or ""
@@ -111,6 +117,7 @@ async def upload_resume(
         redacted_text=redacted,
         sections_json=sections,
         extraction_error=extraction_error,
+        session_id=session_id,
     )
     db.add(resume)
     await db.commit()
@@ -138,11 +145,18 @@ async def list_resumes(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
 ) -> ResumeListResponse:
     offset = (page - 1) * page_size
-    total = await db.scalar(select(func.count()).select_from(Resume))
+    total = await db.scalar(
+        select(func.count()).select_from(Resume).where(Resume.session_id == session_id)
+    )
     result = await db.execute(
-        select(Resume).order_by(Resume.created_at.desc()).offset(offset).limit(page_size)
+        select(Resume)
+        .where(Resume.session_id == session_id)
+        .order_by(Resume.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
     )
     resumes = result.scalars().all()
     return ResumeListResponse(
@@ -162,9 +176,10 @@ async def list_resumes(
 async def get_resume(
     resume_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
 ) -> ResumeDetail:
     resume = await db.get(Resume, resume_id)
-    if not resume:
+    if not resume or resume.session_id != session_id:
         raise HTTPException(status_code=404, detail="Resume not found.")
     return ResumeDetail.model_validate(resume)
 
@@ -220,9 +235,10 @@ async def analyze(
     payload: AnalysisRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
 ) -> AnalysisResponse:
     resume = await db.get(Resume, payload.resume_id)
-    if not resume:
+    if not resume or resume.session_id != session_id:
         raise HTTPException(status_code=404, detail="Resume not found.")
 
     job = await db.get(Job, payload.job_id)
@@ -239,7 +255,8 @@ async def analyze(
     analysis = Analysis(
         resume_id=resume.id,
         job_id=job.id,
-        status="queued",
+        status="STARTING",
+        session_id=session_id,
     )
     db.add(analysis)
     await db.commit()
@@ -261,9 +278,10 @@ async def analyze(
 async def get_analysis(
     analysis_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
 ) -> AnalysisResponse:
     analysis = await db.get(Analysis, analysis_id)
-    if not analysis:
+    if not analysis or analysis.session_id != session_id:
         raise HTTPException(status_code=404, detail="Analysis not found.")
     return AnalysisResponse.model_validate(analysis)
 
@@ -279,10 +297,21 @@ async def rank(
     job_id: uuid.UUID,
     payload: RankRequest,
     db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
 ) -> RankResponse:
     job = await db.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
+
+    # Validate all requested resumes belong to the session
+    if payload.resume_ids:
+        stmt = select(func.count()).select_from(Resume).where(
+            Resume.id.in_(payload.resume_ids),
+            Resume.session_id == session_id
+        )
+        count = await db.scalar(stmt)
+        if count != len(payload.resume_ids):
+             raise HTTPException(status_code=403, detail="One or more resumes do not belong to this session.")
 
     try:
         analyses = await rank_resumes(db, job, payload.resume_ids)
@@ -318,10 +347,21 @@ async def rank(
 async def compare(
     payload: CompareRequest,
     db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
 ) -> CompareResponse:
     job = await db.get(Job, payload.job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
+
+    # Validate all requested resumes belong to the session
+    if payload.resume_ids:
+        stmt = select(func.count()).select_from(Resume).where(
+            Resume.id.in_(payload.resume_ids),
+            Resume.session_id == session_id
+        )
+        count = await db.scalar(stmt)
+        if count != len(payload.resume_ids):
+             raise HTTPException(status_code=403, detail="One or more resumes do not belong to this session.")
 
     analyses = await rank_resumes(db, job, payload.resume_ids)
     return CompareResponse(

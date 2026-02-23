@@ -56,6 +56,12 @@ async def run_analysis(
 
     import asyncio
 
+    # Update status to COMPUTING_EMBEDDINGS
+    analysis = await db.get(Analysis, analysis_id)
+    if analysis:
+        analysis.status = "COMPUTING_EMBEDDINGS"
+        await db.commit()
+
     # Compute match score (generates embeddings if not cached)
     score, resume_vec, job_vec = await compute_match_score(
         resume_text, jd_text, resume_vec, job_vec
@@ -83,6 +89,12 @@ async def run_analysis(
             model_name=settings.sentence_transformer_model,
         )
         db.add(emb)
+
+    # Update status to EXTRACTING_TEXT
+    analysis = await db.get(Analysis, analysis_id)
+    if analysis:
+        analysis.status = "EXTRACTING_TEXT"
+        await db.commit()
 
     # Skills extraction (offload to thread)
     resume_skills = await asyncio.to_thread(extract_skills_from_text, resume_text, skills_taxonomy)
@@ -113,7 +125,7 @@ async def run_analysis(
     if not analysis:
         raise ValueError(f"Analysis {analysis_id} not found in DB.")
 
-    analysis.status = "done"
+    analysis.status = "COMPLETED"
     analysis.match_score_percent = score
     analysis.matching_skills = matching_skills
     analysis.missing_skills = missing_skills
@@ -146,7 +158,7 @@ async def process_analysis_task(analysis_id: uuid.UUID) -> None:
             return
 
         try:
-            analysis.status = "running"
+            analysis.status = "STARTING"
             await db.commit()
 
             resume = await db.get(Resume, analysis.resume_id)

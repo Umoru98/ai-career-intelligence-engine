@@ -31,6 +31,7 @@ class Resume(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
+    session_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
     embeddings: Mapped[list[Embedding]] = relationship(
         "Embedding",
@@ -108,6 +109,7 @@ class Analysis(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), index=True
     )
+    session_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
 
     resume: Mapped[Resume] = relationship("Resume", back_populates="analyses")

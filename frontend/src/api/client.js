@@ -7,6 +7,15 @@ const api = axios.create({
     timeout: 120000, // 2 min for ML operations
 })
 
+// Add session ID to every request
+api.interceptors.request.use((config) => {
+    const sessionId = localStorage.getItem('session_id')
+    if (sessionId) {
+        config.headers['X-Session-ID'] = sessionId
+    }
+    return config
+})
+
 // ── Resumes ────────────────────────────────────────────────────────────────────
 
 export async function uploadResume(file, onProgress) {

@@ -436,7 +436,52 @@ input, textarea { font-family: var(--font); }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 @media (max-width: 768px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .navbar-links { display: none; }
+  .navbar-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 16px;
+    gap: 8px;
+    box-shadow: var(--shadow-lg);
+  }
+  .navbar-links.show {
+    display: flex;
+  }
+  .mobile-menu-toggle {
+    display: flex;
+  }
+  .nav-link {
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+  }
+}
+
+.mobile-menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  transition: all var(--transition);
+}
+.mobile-menu-toggle:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-light);
+}
+
+.menu-open {
+  overflow: hidden;
 }
 
 /* ── Tabs ──────────────────────────────────────────────────────────────────── */

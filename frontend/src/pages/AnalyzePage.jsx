@@ -13,24 +13,12 @@ export default function AnalyzePage() {
     const fileInputRef = useRef()
     const resultsRef = useRef(null)
 
-    const loadingMessages = [
-        "Waking up the AI engine...",
-        "Extracting your skills...",
-        "Running semantic matching...",
-        "Almost there, finalizing insights..."
-    ]
-    const [loadingMessageIdx, setLoadingMessageIdx] = useState(0)
-
-    useEffect(() => {
-        let interval;
-        if (loading) {
-            setLoadingMessageIdx(0);
-            interval = setInterval(() => {
-                setLoadingMessageIdx(prev => (prev + 1) % loadingMessages.length);
-            }, 3500);
-        }
-        return () => clearInterval(interval);
-    }, [loading]);
+    const statusMap = {
+        'STARTING': "Waking up the AI engine...",
+        'EXTRACTING_TEXT': "Extracting your skills & experience...",
+        'COMPUTING_EMBEDDINGS': "Running semantic matching against the job description...",
+    }
+    const [status, setStatus] = useState('')
 
     const handleFiles = (newFiles) => {
         const valid = Array.from(newFiles).filter(f =>
@@ -94,7 +82,7 @@ export default function AnalyzePage() {
                     const analysis = await getAnalysisStatus(initialAnalysis.id)
                     pollCount++
 
-                    if (analysis.status === 'done') {
+                    if (analysis.status === 'COMPLETED' || analysis.status === 'done') {
                         setResult({ analysis, resume: uploaded, job })
                         setLoading(false)
                         return
@@ -102,7 +90,11 @@ export default function AnalyzePage() {
                         setError(`Analysis failed: ${analysis.error_message || 'Unknown error'}`)
                         setLoading(false)
                         return
-                    } else if (pollCount >= maxPolls) {
+                    } else {
+                        setStatus(analysis.status)
+                    }
+
+                    if (pollCount >= maxPolls) {
                         setError('Our free-tier servers are taking a little longer than expected to warm up. Please try again in a few moments.')
                         setLoading(false)
                         return
@@ -222,7 +214,7 @@ export default function AnalyzePage() {
                             <div className="loading-overlay" style={{ minHeight: '300px' }}>
                                 <div className="loading-spinner-lg" />
                                 <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '20px' }}>
-                                    {loadingMessages[loadingMessageIdx]}
+                                    {statusMap[status] || "Processing..."}
                                 </p>
                                 <p className="text-sm text-muted">Please wait, this can take a moment on the free-tier server.</p>
                             </div>
