@@ -8,6 +8,7 @@ export default function AnalyzePage() {
     const [jdText, setJdText] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
+    const [infoMsg, setInfoMsg] = useState(null)
     const [result, setResult] = useState(null)
     const [dragOver, setDragOver] = useState(false)
     const fileInputRef = useRef()
@@ -19,6 +20,14 @@ export default function AnalyzePage() {
         'COMPUTING_EMBEDDINGS': "Running semantic matching against the job description...",
     }
     const [status, setStatus] = useState('')
+
+    useEffect(() => {
+        if (result) {
+            setTimeout(() => {
+                resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }, 100)
+        }
+    }, [result])
 
     const handleFiles = (newFiles) => {
         const valid = Array.from(newFiles).filter(f =>
@@ -54,13 +63,9 @@ export default function AnalyzePage() {
 
         setLoading(true)
         setError(null)
+        setInfoMsg(null)
         setResult(null)
         setSecondsElapsed(0)
-
-        // Smooth scroll to results area
-        setTimeout(() => {
-            resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }, 100)
 
         try {
             const uploaded = await uploadResume(files[0])
@@ -120,7 +125,12 @@ export default function AnalyzePage() {
             setTimeout(pollStatus, 2000)
 
         } catch (err) {
-            setError(err.response?.data?.detail || err.message || 'Analysis failed.')
+            const isTimeout = err.message === 'Network Error' || err.code === 'ECONNABORTED' || [502, 504].includes(err.response?.status)
+            if (isTimeout) {
+                setInfoMsg("The AI engine is waking up from sleep. This might take a minute...")
+            } else {
+                setError(err.response?.data?.detail || err.message || 'Analysis failed.')
+            }
             setLoading(false)
         }
     }
@@ -199,6 +209,7 @@ export default function AnalyzePage() {
                         </div>
 
                         {error && <div className="alert alert-error">⚠️ {error}</div>}
+                        {infoMsg && <div className="alert alert-info">✨ {infoMsg}</div>}
 
                         <button
                             className="btn btn-primary btn-lg btn-full"
@@ -218,11 +229,9 @@ export default function AnalyzePage() {
                                 <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '20px', textAlign: 'center' }}>
                                     {status}
                                 </p>
-                                {secondsElapsed >= 30 && (
-                                    <p className="text-sm text-muted" style={{ maxWidth: 400, textAlign: 'center', marginTop: 12 }}>
-                                        Great resumes take a moment to analyze. We're making sure we don't miss any of your skills!
-                                    </p>
-                                )}
+                                <p className="text-sm text-muted" style={{ maxWidth: 400, textAlign: 'center', marginTop: 12 }}>
+                                    Great resumes take a moment to analyze. We're making sure we don't miss any of your skills!
+                                </p>
                             </div>
                         )}
                         {result && !loading && (

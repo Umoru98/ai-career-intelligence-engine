@@ -5,6 +5,7 @@ export default function ResumesPage() {
     const [resumes, setResumes] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [infoMsg, setInfoMsg] = useState(null)
 
     useEffect(() => {
         listResumes()
@@ -14,11 +15,17 @@ export default function ResumesPage() {
                 } else {
                     setResumes([])
                 }
+                setError(null)
+                setInfoMsg(null)
             })
             .catch(err => {
                 const status = err.response?.status
+                const isTimeout = err.message === 'Network Error' || err.code === 'ECONNABORTED' || [502, 504].includes(status)
+
                 if (status === 404) {
                     setResumes([])
+                } else if (isTimeout) {
+                    setInfoMsg("The AI engine is waking up from sleep. This might take a minute...")
                 } else {
                     setError(err.message)
                 }
@@ -52,8 +59,9 @@ export default function ResumesPage() {
                 )}
 
                 {error && <div className="alert alert-error">⚠️ {error}</div>}
+                {infoMsg && <div className="alert alert-info">✨ {infoMsg}</div>}
 
-                {!loading && resumes.length === 0 && (
+                {!loading && resumes.length === 0 && !error && !infoMsg && (
                     <div className="empty-state">
                         <div className="empty-state-icon">📂</div>
                         <h3>No resumes yet</h3>

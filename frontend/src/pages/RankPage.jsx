@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { uploadResume, createJob, rankResumes } from '../api/client'
 import ScoreDetail from '../components/ScoreDetail'
 
@@ -10,13 +10,23 @@ export default function RankPage() {
     const [loading, setLoading] = useState(false)
     const [uploading, setUploading] = useState(false)
     const [error, setError] = useState(null)
+    const [infoMsg, setInfoMsg] = useState(null)
     const [rankResult, setRankResult] = useState(null)
     const [selectedAnalysis, setSelectedAnalysis] = useState(null)
     const [dragOver, setDragOver] = useState(false)
     const fileInputRef = useRef()
+    const rankingsRef = useRef(null)
 
     const [status, setStatus] = useState('')
     const [secondsElapsed, setSecondsElapsed] = useState(0)
+
+    useEffect(() => {
+        if (rankResult) {
+            setTimeout(() => {
+                rankingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }, 100)
+        }
+    }, [rankResult])
 
     const handleFiles = (newFiles) => {
         const valid = Array.from(newFiles).filter(f =>
@@ -43,17 +53,25 @@ export default function RankPage() {
         if (!files.length) { setError('Please add resume files.'); return }
         setUploading(true)
         setError(null)
+        setInfoMsg(null)
         const results = []
         for (const file of files) {
             try {
                 const r = await uploadResume(file)
                 results.push({ ...r, localName: file.name })
             } catch (err) {
-                setError(`Failed to upload ${file.name}: ${err.response?.data?.detail || err.message}`)
+                const isTimeout = err.message === 'Network Error' || err.code === 'ECONNABORTED' || [502, 504].includes(err.response?.status)
+                if (isTimeout) {
+                    setInfoMsg("The AI engine is waking up from sleep. This might take a minute...")
+                } else {
+                    setError(`Failed to upload ${file.name}: ${err.response?.data?.detail || err.message}`)
+                }
             }
         }
         setUploadedResumes(prev => [...prev, ...results])
-        setFiles([])
+        if (files.length === results.length) {
+            setFiles([])
+        }
         setUploading(false)
     }
 
@@ -63,6 +81,7 @@ export default function RankPage() {
 
         setLoading(true)
         setError(null)
+        setInfoMsg(null)
         setRankResult(null)
         setSelectedAnalysis(null)
         setSecondsElapsed(0)
@@ -88,7 +107,12 @@ export default function RankPage() {
             const result = await rankResumes(job.id, uploadedResumes.map(r => r.id))
             setRankResult(result)
         } catch (err) {
-            setError(err.response?.data?.detail || err.message || 'Ranking failed.')
+            const isTimeout = err.message === 'Network Error' || err.code === 'ECONNABORTED' || [502, 504].includes(err.response?.status)
+            if (isTimeout) {
+                setInfoMsg("The AI engine is waking up from sleep. This might take a minute...")
+            } else {
+                setError(err.response?.data?.detail || err.message || 'Ranking failed.')
+            }
         } finally {
             clearInterval(messageInterval)
             setLoading(false)
@@ -197,6 +221,7 @@ export default function RankPage() {
                         </div>
 
                         {error && <div className="alert alert-error">⚠️ {error}</div>}
+                        {infoMsg && <div className="alert alert-info">✨ {infoMsg}</div>}
 
                         <button
                             className="btn btn-primary btn-lg btn-full"
@@ -209,18 +234,16 @@ export default function RankPage() {
                     </div>
 
                     {/* Right: Results */}
-                    <div>
+                    <div ref={rankingsRef}>
                         {loading && (
                             <div className="loading-overlay" style={{ minHeight: '300px' }}>
                                 <div className="loading-spinner-lg" />
                                 <p style={{ fontWeight: '500', fontSize: '1.1rem', marginTop: '20px', textAlign: 'center' }}>
                                     {status}
                                 </p>
-                                {secondsElapsed >= 30 && (
-                                    <p className="text-sm text-muted" style={{ maxWidth: 400, textAlign: 'center', marginTop: 12 }}>
-                                        Great resumes take a moment to analyze. We're making sure we don't miss any of your skills!
-                                    </p>
-                                )}
+                                <p className="text-sm text-muted" style={{ maxWidth: 400, textAlign: 'center', marginTop: 12 }}>
+                                    Great resumes take a moment to analyze. We're making sure we don't miss any of your skills!
+                                </p>
                             </div>
                         )}
 

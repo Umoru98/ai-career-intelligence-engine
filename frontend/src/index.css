@@ -48,6 +48,12 @@ body {
   min-height: 100vh;
 }
 
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 a {
   color: var(--accent-light);
   text-decoration: none;
@@ -133,6 +139,16 @@ textarea {
 .nav-link.active {
   color: var(--text-primary);
   background: var(--bg-card);
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .md\:flex {
+    display: flex !important;
+  }
 }
 
 /* ── Hero ──────────────────────────────────────────────────────────────────── */
@@ -718,75 +734,62 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .navbar-links {
+  .app-container {
+    padding-bottom: 70px;
+  }
+
+  /* Keep desktop navbar visible but remove links wrapper so it's just the top brand bar */
+}
+
+/* ── Mobile Bottom Navigation ──────────────────────────────────────────────── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  padding: 8px 12px;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+  z-index: 100;
+  justify-content: space-around;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
     display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: 73px;
-    /* height of navbar */
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(10, 15, 30, 0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    padding: 24px;
-    gap: 12px;
-    z-index: 99;
-    transform: translateY(-100%);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    pointer-events: none;
-  }
-
-  .navbar-links.show {
-    transform: translateY(0);
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-  }
-
-  .mobile-menu-toggle {
-    display: flex;
-  }
-
-  .nav-link {
-    width: 100%;
-    text-align: left;
-    padding: 16px 20px;
-    font-size: 1.1rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-  }
-
-  .nav-link.active {
-    border-color: var(--accent);
-    background: var(--accent-glow);
   }
 }
 
-.mobile-menu-toggle {
-  display: none;
+.mobile-nav-link {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  gap: 4px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 1.2rem;
   transition: all var(--transition);
+  flex: 1;
 }
 
-.mobile-menu-toggle:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-light);
+.mobile-nav-link:hover {
+  text-decoration: none;
+  color: var(--text-primary);
 }
 
-.menu-open {
-  overflow: hidden;
+.mobile-nav-link.active {
+  color: var(--accent);
+}
+
+.mobile-nav-icon {
+  font-size: 1.25rem;
 }
 
 /* ── Tabs ──────────────────────────────────────────────────────────────────── */
