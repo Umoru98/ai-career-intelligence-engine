@@ -25,7 +25,7 @@ export default function AnalyzePage() {
         if (result) {
             setTimeout(() => {
                 resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }, 100)
+            }, 200)
         }
     }, [result])
 
@@ -94,8 +94,8 @@ export default function AnalyzePage() {
             const messageInterval = setInterval(() => {
                 messageIdx = (messageIdx + 1) % loadingMessages.length
                 setStatus(loadingMessages[messageIdx])
-                setSecondsElapsed(prev => prev + 3)
-            }, 3000)
+                setSecondsElapsed(prev => prev + 4)
+            }, 4000)
 
             const pollStatus = async () => {
                 try {
