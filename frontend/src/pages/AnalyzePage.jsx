@@ -22,12 +22,12 @@ export default function AnalyzePage() {
     const [status, setStatus] = useState('')
 
     useEffect(() => {
-        if (result) {
+        if (loading) {
             setTimeout(() => {
                 resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }, 200)
+            }, 100)
         }
-    }, [result])
+    }, [loading])
 
     const handleFiles = (newFiles) => {
         const valid = Array.from(newFiles).filter(f =>
@@ -82,10 +82,12 @@ export default function AnalyzePage() {
 
             const loadingMessages = [
                 "Brewing some digital coffee for the AI...",
-                "Reading between the lines of your resume...",
-                "Translating HR-speak into Machine Learning...",
+                "Reading between the lines of your experience...",
+                "Translating HR-speak into Machine Learning vectors...",
                 "Cross-referencing your skills with industry standards...",
-                "Polishing up the final insights..."
+                "Quantifying your impact and identifying skill gaps...",
+                "Aligning your profile with the target job description...",
+                "Polishing up the final semantic insights..."
             ]
 
             setStatus(loadingMessages[0])
@@ -127,7 +129,7 @@ export default function AnalyzePage() {
         } catch (err) {
             const isTimeout = err.message === 'Network Error' || err.code === 'ECONNABORTED' || [502, 504].includes(err.response?.status)
             if (isTimeout) {
-                setInfoMsg("The AI engine is waking up from sleep. This might take a minute...")
+                setError("The AI engine was deep in sleep mode to save energy. We've just nudged it awake! Please click 'Analyze' again to continue.")
             } else {
                 setError(err.response?.data?.detail || err.message || 'Analysis failed.')
             }
