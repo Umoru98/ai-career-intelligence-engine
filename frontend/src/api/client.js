@@ -19,6 +19,12 @@ api.interceptors.request.use((config) => {
 // ── Resumes ────────────────────────────────────────────────────────────────────
 
 export async function uploadResume(file, onProgress) {
+    const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(
+            'File optimized for speed? We cap uploads at 2MB to ensure our AI can process your data instantly. Most standard resumes are under 200KB. Compressing your PDF will give you the fastest results!'
+        )
+    }
     const formData = new FormData()
     formData.append('file', file)
     const res = await api.post('/v1/resumes/upload', formData, {
@@ -78,5 +84,10 @@ export async function compareResumes(resumeIds, jobId) {
 
 export async function healthCheck() {
     const res = await api.get('/health')
+    return res.data
+}
+
+export async function clearResumes() {
+    const res = await api.delete('/v1/resumes/clear')
     return res.data
 }

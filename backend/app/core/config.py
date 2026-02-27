@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # File storage
     upload_dir: str = "/data/uploads"
     max_file_size_mb: int = 10
+    resume_ttl_minutes: int = 30
 
     # ML
     sentence_transformer_model: str = "sentence-transformers/all-MiniLM-L6-v2"

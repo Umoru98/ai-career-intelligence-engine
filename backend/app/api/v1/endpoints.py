@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import os
 import uuid
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from fastapi import (
     APIRouter,
@@ -46,6 +49,31 @@ router = APIRouter(prefix="/v1", tags=["v1"])
 
 async def get_session_id(x_session_id: str | None = Header(None)) -> str | None:
     return x_session_id
+
+
+async def _purge_expired_resumes(db: AsyncSession) -> int:
+    """Delete all resume records (and cascade) older than the configured TTL.
+
+    Also removes the physical uploaded files from disk.  Returns the count
+    of purged records.
+    """
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.resume_ttl_minutes)
+    result = await db.execute(select(Resume).where(Resume.created_at < cutoff))
+    expired = result.scalars().all()
+
+    for resume in expired:
+        try:
+            file_path = Path(resume.stored_path)
+            if file_path.exists():
+                os.remove(file_path)
+        except OSError:
+            pass  # best-effort file cleanup
+        await db.delete(resume)
+
+    if expired:
+        await db.commit()
+
+    return len(expired)
 
 
 # ── Resumes ────────────────────────────────────────────────────────────────────
@@ -147,6 +175,9 @@ async def list_resumes(
     db: AsyncSession = Depends(get_db),
     session_id: str | None = Depends(get_session_id),
 ) -> ResumeListResponse:
+    # Lazy purge: remove all globally expired resumes before fetching
+    await _purge_expired_resumes(db)
+
     offset = (page - 1) * page_size
     total = await db.scalar(
         select(func.count()).select_from(Resume).where(Resume.session_id == session_id)
@@ -182,6 +213,42 @@ async def get_resume(
     if not resume or resume.session_id != session_id:
         raise HTTPException(status_code=404, detail="Resume not found.")
     return ResumeDetail.model_validate(resume)
+
+
+@router.delete(
+    "/resumes/clear",
+    summary="Purge all resumes for the current session",
+    tags=["resumes"],
+)
+async def clear_resumes(
+    db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
+) -> dict:
+    """Delete all resume records (and cascaded analyses/embeddings) for the
+    current session.  Also removes the physical uploaded files from disk."""
+    # Fetch all resumes belonging to this session
+    result = await db.execute(
+        select(Resume).where(Resume.session_id == session_id)
+    )
+    resumes = result.scalars().all()
+
+    deleted_count = len(resumes)
+
+    # Delete physical files
+    for resume in resumes:
+        try:
+            file_path = Path(resume.stored_path)
+            if file_path.exists():
+                os.remove(file_path)
+        except OSError:
+            pass  # best-effort file cleanup
+
+    # Delete DB records (cascade handles analyses & embeddings)
+    for resume in resumes:
+        await db.delete(resume)
+    await db.commit()
+
+    return {"message": f"Resume library successfully purged. {deleted_count} resume(s) deleted."}
 
 
 # ── Jobs ───────────────────────────────────────────────────────────────────────

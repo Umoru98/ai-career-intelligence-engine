@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { listResumes } from '../api/client'
+import { listResumes, clearResumes } from '../api/client'
 
 export default function ResumesPage() {
     const [resumes, setResumes] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [infoMsg, setInfoMsg] = useState(null)
+    const [clearing, setClearing] = useState(false)
 
     useEffect(() => {
         listResumes()
@@ -51,6 +52,13 @@ export default function ResumesPage() {
             </div>
 
             <div className="container" style={{ paddingBottom: 60 }}>
+                <div className="privacy-banner" id="privacy-banner">
+                    <span className="privacy-banner-icon">🛡️</span>
+                    <p className="privacy-banner-text">
+                        <strong>Strict Privacy Protocol Active:</strong> To protect your personal data, this library is ephemeral.
+                        All resumes and analysis metrics automatically vaporize 30 minutes after upload.
+                    </p>
+                </div>
                 {loading && (
                     <div className="loading-overlay">
                         <div className="loading-spinner-lg" />
@@ -71,7 +79,35 @@ export default function ResumesPage() {
 
                 {!loading && resumes.length > 0 && (
                     <div className="card">
-                        <div className="card-title"><span className="icon">📄</span> {resumes.length} Resume(s)</div>
+                        <div className="card-title" style={{ justifyContent: 'space-between' }}>
+                            <span><span className="icon">📄</span> {resumes.length} Resume(s)</span>
+                            <button
+                                className="btn btn-sm"
+                                style={{
+                                    color: 'var(--danger)',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    background: 'transparent',
+                                }}
+                                disabled={clearing}
+                                onClick={async () => {
+                                    if (!window.confirm('Are you sure you want to permanently delete all resumes? This action cannot be undone.')) return
+                                    setClearing(true)
+                                    setError(null)
+                                    setInfoMsg(null)
+                                    try {
+                                        await clearResumes()
+                                        setResumes([])
+                                        setInfoMsg('Resume library successfully purged.')
+                                    } catch (err) {
+                                        setError(err.response?.data?.detail || err.message || 'Failed to clear library.')
+                                    } finally {
+                                        setClearing(false)
+                                    }
+                                }}
+                            >
+                                {clearing ? <><span className="spinner" /> Clearing...</> : '🗑️ Clear Library'}
+                            </button>
+                        </div>
                         <table className="rank-table">
                             <thead>
                                 <tr>

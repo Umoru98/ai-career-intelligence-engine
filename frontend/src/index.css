@@ -678,6 +678,56 @@ textarea {
   color: var(--accent-light);
 }
 
+/* ── Privacy Banner ───────────────────────────────────────────────────────── */
+.privacy-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-left: 4px solid rgba(56, 189, 248, 0.6);
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.06) 0%,
+    rgba(99, 102, 241, 0.04) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: bannerFadeIn 0.5s ease;
+}
+
+@keyframes bannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.privacy-banner-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.privacy-banner-text {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.privacy-banner-text strong {
+  color: rgba(56, 189, 248, 0.9);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 /* ── Loading ───────────────────────────────────────────────────────────────── */
 .spinner {
   width: 20px;

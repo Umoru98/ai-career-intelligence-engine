@@ -28,11 +28,21 @@ export default function RankPage() {
         }
     }, [loading])
 
+    const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
+
     const handleFiles = (newFiles) => {
+        setError(null)
         const valid = Array.from(newFiles).filter(f =>
             f.type === 'application/pdf' ||
             f.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
+        const oversized = valid.filter(f => f.size > MAX_FILE_SIZE)
+        if (oversized.length > 0) {
+            setError(
+                "File optimized for speed? We cap uploads at 2MB to ensure our AI can process your data instantly. Most standard resumes are under 200KB. Compressing your PDF will give you the fastest results!"
+            )
+            return
+        }
         setFiles(prev => [...prev, ...valid])
     }
 
@@ -146,6 +156,9 @@ export default function RankPage() {
                 <div className="grid-2">
                     {/* Left: Setup */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        {error && <div className="alert alert-error">⚠️ {error}</div>}
+                        {infoMsg && <div className="alert alert-info">✨ {infoMsg}</div>}
+
                         <div className="card">
                             <div className="card-title"><span className="icon">📄</span> Upload Resumes</div>
                             <div
@@ -157,7 +170,7 @@ export default function RankPage() {
                             >
                                 <div className="drop-zone-icon">📁</div>
                                 <div className="drop-zone-text">Drop multiple resumes or <strong>click to browse</strong></div>
-                                <div className="drop-zone-hint">PDF or DOCX · Max 10MB each</div>
+                                <div className="drop-zone-hint">PDF or DOCX · Max 2MB each</div>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -222,8 +235,6 @@ export default function RankPage() {
                             </div>
                         </div>
 
-                        {error && <div className="alert alert-error">⚠️ {error}</div>}
-                        {infoMsg && <div className="alert alert-info">✨ {infoMsg}</div>}
 
                         <button
                             className="btn btn-primary btn-lg btn-full"
