@@ -198,23 +198,6 @@ async def list_resumes(
     )
 
 
-@router.get(
-    "/resumes/{resume_id}",
-    response_model=ResumeDetail,
-    summary="Get resume details",
-    tags=["resumes"],
-)
-async def get_resume(
-    resume_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    session_id: str | None = Depends(get_session_id),
-) -> ResumeDetail:
-    resume = await db.get(Resume, resume_id)
-    if not resume or resume.session_id != session_id:
-        raise HTTPException(status_code=404, detail="Resume not found.")
-    return ResumeDetail.model_validate(resume)
-
-
 @router.delete(
     "/resumes/clear",
     summary="Purge all resumes for the current session",
@@ -249,6 +232,23 @@ async def clear_resumes(
     await db.commit()
 
     return {"message": f"Resume library successfully purged. {deleted_count} resume(s) deleted."}
+
+
+@router.get(
+    "/resumes/{resume_id}",
+    response_model=ResumeDetail,
+    summary="Get resume details",
+    tags=["resumes"],
+)
+async def get_resume(
+    resume_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    session_id: str | None = Depends(get_session_id),
+) -> ResumeDetail:
+    resume = await db.get(Resume, resume_id)
+    if not resume or resume.session_id != session_id:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+    return ResumeDetail.model_validate(resume)
 
 
 # ── Jobs ───────────────────────────────────────────────────────────────────────
